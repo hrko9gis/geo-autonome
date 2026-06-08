@@ -1,0 +1,49 @@
+[
+  {
+    "keyword": "glico",
+    "strategy": "abstract",
+    "replacement": "generic_billboard",
+    "notes": "Glico Running Man sign at Dotonbori - registered trademark of Ezaki Glico Co., Ltd."
+  },
+  {
+    "keyword": "kirin",
+    "strategy": "rebrand",
+    "replacement": "starlight_beer",
+    "notes": "Kirin beer advertising - Kirin Holdings trademark"
+  },
+  {
+    "keyword": "asahi",
+    "strategy": "rebrand",
+    "replacement": "sunrise_beer",
+    "notes": "Asahi beer advertising - Asahi Group Holdings trademark"
+  },
+  {
+    "keyword": "sapporo",
+    "strategy": "rebrand",
+    "replacement": "northern_beer",
+    "notes": "Sapporo beer advertising - Sapporo Holdings trademark"
+  },
+  {
+    "keyword": "mcdonalds",
+    "strategy": "delete",
+    "notes": "McDonald's Golden Arches - McDonald's Corporation trademark"
+  },
+  {
+    "keyword": "7eleven",
+    "strategy": "abstract",
+    "replacement": "generic_convenience_store",
+    "notes": "7-Eleven brand - Seven & i Holdings trademark"
+  },
+  {
+    "keyword": "lawson",
+    "strategy": "abstract",
+    "replacement": "generic_convenience_store",
+    "notes": "Lawson brand - Lawson Inc. trademark"
+  },
+  {
+    "keyword": "familymart",
+    "strategy": "abstract",
+    "replacement": "generic_convenience_store",
+    "notes": "FamilyMart brand - FamilyMart Co., Ltd. trademark"
+  }
+]

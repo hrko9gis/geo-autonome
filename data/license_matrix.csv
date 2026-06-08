@@ -1,1 +1,5 @@
-
+source_name,license_type,commercial_ok,requires_attribution,share_alike,notes
+plateau,CC BY 4.0,true,true,false,PLATEAU 3D City Model by MLIT Japan
+estat,Government Standard 2.0,true,false,false,Statistics Japan e-Stat
+kokudo_chiriin,CC BY 4.0,true,true,false,Geospatial Information Authority of Japan
+osm,ODbL,false,true,true,OpenStreetMap - share-alike prevents commercial sales
