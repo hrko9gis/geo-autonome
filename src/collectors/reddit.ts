@@ -48,6 +48,7 @@ export class RedditCollector extends BaseCollector {
       }
 
       if (!response.ok) {
+        if (response.status === 429) continue;
         throw new CollectorError(
           `Reddit API returned ${response.status} for r/${subreddit}`,
           this.source,
