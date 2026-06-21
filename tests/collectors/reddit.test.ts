@@ -44,12 +44,26 @@ describe('RedditCollector', () => {
     await expect(collector.collect()).rejects.toThrow(CollectorError);
   });
 
-  it('throws CollectorError on non-200 response', async () => {
+  it('throws CollectorError when every subreddit fails', async () => {
     vi.spyOn(globalThis, 'fetch').mockImplementation(() =>
       Promise.resolve(new Response('', { status: 429 })),
     );
 
     await expect(collector.collect()).rejects.toThrow(CollectorError);
+  });
+
+  it('skips subreddits that return 403 and still returns items from others', async () => {
+    vi.spyOn(globalThis, 'fetch').mockImplementation((input) => {
+      const url = String(input);
+      if (url.includes('/r/gamedev/')) {
+        return Promise.resolve(new Response('', { status: 403 }));
+      }
+      return Promise.resolve(new Response(ATOM_XML, { status: 200 }));
+    });
+
+    const items = await collector.collect();
+    expect(items.length).toBeGreaterThan(0);
+    expect(items.every((item) => item.source === 'reddit')).toBe(true);
   });
 
   it('collects from all required subreddits including gamedev and vrchat', async () => {
