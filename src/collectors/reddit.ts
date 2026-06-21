@@ -31,6 +31,8 @@ export class RedditCollector extends BaseCollector {
 
   async collect(): Promise<RawItem[]> {
     const items: RawItem[] = [];
+    let successCount = 0;
+    let lastError: CollectorError | undefined;
 
     for (const subreddit of SUBREDDITS) {
       const url = `https://www.reddit.com/r/${subreddit}/new.rss?limit=25`;
@@ -40,19 +42,23 @@ export class RedditCollector extends BaseCollector {
           headers: { 'User-Agent': 'geo-autonome/1.0 (data collection bot)' },
         });
       } catch (cause) {
-        throw new CollectorError(
+        // Reddit frequently blocks datacenter/cloud IPs (429/403). Treat any
+        // single-subreddit failure as recoverable and keep going; only fail the
+        // whole collector if every subreddit fails (see end of loop).
+        lastError = new CollectorError(
           `Failed to fetch Reddit r/${subreddit}: ${String(cause)}`,
           this.source,
           cause,
         );
+        continue;
       }
 
       if (!response.ok) {
-        if (response.status === 429) continue;
-        throw new CollectorError(
+        lastError = new CollectorError(
           `Reddit API returned ${response.status} for r/${subreddit}`,
           this.source,
         );
+        continue;
       }
 
       const xml = await response.text();
@@ -60,13 +66,15 @@ export class RedditCollector extends BaseCollector {
       try {
         parsed = this.parser.parse(xml) as AtomFeed;
       } catch (cause) {
-        throw new CollectorError(
+        lastError = new CollectorError(
           `Failed to parse Reddit r/${subreddit} feed: ${String(cause)}`,
           this.source,
           cause,
         );
+        continue;
       }
 
+      successCount++;
       const raw = parsed.feed?.entry;
       const entries = raw ? (Array.isArray(raw) ? raw : [raw]) : [];
 
@@ -86,6 +94,13 @@ export class RedditCollector extends BaseCollector {
           }),
         );
       }
+    }
+
+    if (successCount === 0) {
+      throw (
+        lastError ??
+        new CollectorError('Reddit collection failed for all subreddits', this.source)
+      );
     }
 
     return items;
