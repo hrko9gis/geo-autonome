@@ -76,7 +76,28 @@ describe('main()', () => {
     expect(exitSpy).not.toHaveBeenCalled();
   });
 
-  it('calls process.exit(2) when any collector fails', async () => {
+  it('calls process.exit(2) when a critical collector fails', async () => {
+    const { CollectorRunner } = await import('../../src/collectors/runner.js');
+    vi.mocked(CollectorRunner).mockImplementationOnce(() => ({
+      run: vi.fn().mockResolvedValue({
+        totalCollected: 0,
+        bySource: {
+          hacker_news: { success: 0, failed: false },
+          reddit: { success: 0, failed: false },
+          estat: { success: 0, failed: true },
+          plateau: { success: 0, failed: false },
+          local_file: { success: 0, failed: false },
+        },
+      }),
+    }));
+
+    const { main } = await import('../../src/collectors/collect-cli.js');
+    await expect(main()).rejects.toThrow('process.exit(2)');
+    expect(exitSpy).toHaveBeenCalledWith(2);
+  });
+
+  it('does not call process.exit when only a non-critical collector (reddit) fails', async () => {
+    const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => undefined);
     const { CollectorRunner } = await import('../../src/collectors/runner.js');
     vi.mocked(CollectorRunner).mockImplementationOnce(() => ({
       run: vi.fn().mockResolvedValue({
@@ -92,8 +113,12 @@ describe('main()', () => {
     }));
 
     const { main } = await import('../../src/collectors/collect-cli.js');
-    await expect(main()).rejects.toThrow('process.exit(2)');
-    expect(exitSpy).toHaveBeenCalledWith(2);
+    await expect(main()).resolves.toBeUndefined();
+    expect(exitSpy).not.toHaveBeenCalled();
+    expect(warnSpy).toHaveBeenCalledWith(
+      expect.stringContaining('non-critical'),
+    );
+    warnSpy.mockRestore();
   });
 
   it('uses HealthcheckNotifier when HEALTHCHECK_BASE_URL is set', async () => {
