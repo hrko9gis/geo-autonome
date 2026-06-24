@@ -13,6 +13,13 @@ import type { CollectorSource } from './types.js';
 
 const OUTPUT_FILE = path.join('data', 'collected_items.jsonl');
 
+// Sources allowed to fail without failing the whole job. Reddit blocks
+// datacenter/cloud IPs (e.g. GitHub Actions runners) with 403, so its failure
+// in CI is expected and must not turn the workflow red.
+const NON_CRITICAL_SOURCES: ReadonlySet<CollectorSource> = new Set<CollectorSource>([
+  'reddit',
+]);
+
 export function buildHealthcheckUuids(): Partial<Record<CollectorSource, string>> {
   const raw = process.env['HEALTHCHECK_UUID_MAP'];
   if (!raw) return {};
@@ -52,14 +59,20 @@ export async function main(): Promise<void> {
   );
   for (const [source, stat] of Object.entries(summary.bySource)) {
     if (stat.failed) {
-      console.error(`[collect-cli] FAILED: ${source}`);
+      if (NON_CRITICAL_SOURCES.has(source as CollectorSource)) {
+        console.warn(`[collect-cli] WARN (non-critical): ${source}`);
+      } else {
+        console.error(`[collect-cli] FAILED: ${source}`);
+      }
     } else if (stat.success > 0) {
       console.log(`[collect-cli] ${source}: ${stat.success} items`);
     }
   }
 
-  const hasFailure = Object.values(summary.bySource).some((s) => s.failed);
-  if (hasFailure) {
+  const hasCriticalFailure = Object.entries(summary.bySource).some(
+    ([source, stat]) => stat.failed && !NON_CRITICAL_SOURCES.has(source as CollectorSource),
+  );
+  if (hasCriticalFailure) {
     process.exit(2);
   }
 }
