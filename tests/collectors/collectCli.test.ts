@@ -1,5 +1,6 @@
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi, type MockInstance } from 'vitest';
 import { buildHealthcheckUuids } from '../../src/collectors/collect-cli.js';
+import type { CollectorRunner as CollectorRunnerType } from '../../src/collectors/runner.js';
 
 vi.mock('node:fs', () => ({
   mkdirSync: vi.fn(),
@@ -56,12 +57,12 @@ describe('buildHealthcheckUuids', () => {
 });
 
 describe('main()', () => {
-  let exitSpy: ReturnType<typeof vi.spyOn>;
+  let exitSpy: MockInstance;
 
   beforeEach(() => {
-    exitSpy = vi.spyOn(process, 'exit').mockImplementation((_code) => {
+    exitSpy = vi.spyOn(process, 'exit').mockImplementation(((_code?: number) => {
       throw new Error(`process.exit(${_code ?? 'undefined'})`);
-    });
+    }) as never);
   });
 
   afterEach(() => {
@@ -78,18 +79,21 @@ describe('main()', () => {
 
   it('calls process.exit(2) when a critical collector fails', async () => {
     const { CollectorRunner } = await import('../../src/collectors/runner.js');
-    vi.mocked(CollectorRunner).mockImplementationOnce(() => ({
-      run: vi.fn().mockResolvedValue({
-        totalCollected: 0,
-        bySource: {
-          hacker_news: { success: 0, failed: false },
-          reddit: { success: 0, failed: false },
-          estat: { success: 0, failed: true },
-          plateau: { success: 0, failed: false },
-          local_file: { success: 0, failed: false },
-        },
-      }),
-    }));
+    vi.mocked(CollectorRunner).mockImplementationOnce(
+      () =>
+        ({
+          run: vi.fn().mockResolvedValue({
+            totalCollected: 0,
+            bySource: {
+              hacker_news: { success: 0, failed: false },
+              reddit: { success: 0, failed: false },
+              estat: { success: 0, failed: true },
+              plateau: { success: 0, failed: false },
+              local_file: { success: 0, failed: false },
+            },
+          }),
+        }) as unknown as CollectorRunnerType,
+    );
 
     const { main } = await import('../../src/collectors/collect-cli.js');
     await expect(main()).rejects.toThrow('process.exit(2)');
@@ -99,18 +103,21 @@ describe('main()', () => {
   it('does not call process.exit when only a non-critical collector (reddit) fails', async () => {
     const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => undefined);
     const { CollectorRunner } = await import('../../src/collectors/runner.js');
-    vi.mocked(CollectorRunner).mockImplementationOnce(() => ({
-      run: vi.fn().mockResolvedValue({
-        totalCollected: 0,
-        bySource: {
-          hacker_news: { success: 0, failed: false },
-          reddit: { success: 0, failed: true },
-          estat: { success: 0, failed: false },
-          plateau: { success: 0, failed: false },
-          local_file: { success: 0, failed: false },
-        },
-      }),
-    }));
+    vi.mocked(CollectorRunner).mockImplementationOnce(
+      () =>
+        ({
+          run: vi.fn().mockResolvedValue({
+            totalCollected: 0,
+            bySource: {
+              hacker_news: { success: 0, failed: false },
+              reddit: { success: 0, failed: true },
+              estat: { success: 0, failed: false },
+              plateau: { success: 0, failed: false },
+              local_file: { success: 0, failed: false },
+            },
+          }),
+        }) as unknown as CollectorRunnerType,
+    );
 
     const { main } = await import('../../src/collectors/collect-cli.js');
     await expect(main()).resolves.toBeUndefined();
